@@ -20,8 +20,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 // ARM（AUX1/CH5） 输入模式：二选一
-//#define ARM_MODE_BUTTON   // ===== 按键模式：短按切换 ARM =====
-#define ARM_MODE_SLIDE // ===== 两档滑动开关模式：低电平 ARM，高电平 DISARM =====
+#define ARM_MODE_BUTTON   // ===== 按键模式：短按切换 ARM =====
+// #define ARM_MODE_SLIDE // ===== 两档滑动开关模式：低电平 ARM，高电平 DISARM =====
 
 // =================================
 // 额外功能: BLE蓝牙手柄模式、OLED菜单设置、电池电压监测
