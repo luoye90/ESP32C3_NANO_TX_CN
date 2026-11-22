@@ -23,8 +23,8 @@
 // 定义摇杆通道的硬编码反向（取消注释即反向该通道）- 也可在手台设置中动态配置
 #define RIGHTX_REVERSE      // 右横滚（副翼）通道反向
 //#define RIGHTY_REVERSE    // 右俯仰（升降）通道反向
-#define LEFTX_REVERSE       // 左横滚（方向舵）通道反向
-//#define LEFTY_REVERSE     // 左俯仰（油门）通道反向
+//#define LEFTX_REVERSE       // 左横滚（方向舵）通道反向
+#define LEFTY_REVERSE     // 左俯仰（油门）通道反向
 
 // 有源蜂鸣器只能发出单一音调（常用于飞控作为提示音）
 // 也可以替换为振动马达

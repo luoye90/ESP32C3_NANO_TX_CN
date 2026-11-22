@@ -54,7 +54,7 @@ static void printUiText(const char* source) {
 // 默认保持 R0。需要翻转时，只把下一行改为 U8G2_R2 即可。
 // 主页采用整屏刷新，不再使用与旋转方向有关的局部刷新区域。
 #ifndef OLED_ROTATION
-#define OLED_ROTATION U8G2_R2
+#define OLED_ROTATION U8G2_R0
 #endif
 
 #ifdef OLED_OPTION_1
