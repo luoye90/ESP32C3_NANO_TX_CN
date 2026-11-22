@@ -180,9 +180,14 @@ void drawHomeScreen(float voltage, bool aircraftVoltage, int telemetryState,
     // 4. SIDES: AUX SWITCH INDICATORS
     // ==========================================
     display.drawLine(4 + OLED_X_OFFSET, 18 + OLED_Y_OFFSET,
-                     4 + OLED_X_OFFSET, 38 + OLED_Y_OFFSET);
-    uint8_t aux1Y = (channels[4] == 0) ? 36 : 16;
+                     4 + OLED_X_OFFSET, 26 + OLED_Y_OFFSET);
+    uint8_t aux1Y = (channels[4] == 0) ? 24 : 16;
     display.drawBox(2 + OLED_X_OFFSET, aux1Y + OLED_Y_OFFSET, 5, 3);
+
+    display.drawLine(4 + OLED_X_OFFSET, 30 + OLED_Y_OFFSET,
+                     4 + OLED_X_OFFSET, 38 + OLED_Y_OFFSET);
+    uint8_t aux4Y = (channels[7] == 0) ? 36 : 28;
+    display.drawBox(2 + OLED_X_OFFSET, aux4Y + OLED_Y_OFFSET, 5, 3);
 
     display.drawLine(68 + OLED_X_OFFSET, 18 + OLED_Y_OFFSET,
                      68 + OLED_X_OFFSET, 26 + OLED_Y_OFFSET);

@@ -50,11 +50,11 @@ bool btJoystickModeActive = false; // Track whether bt joystick mode is selected
 bool bleGamepadBegun = false;      // Track whether we need to start bleGamepad
 
 
-// 索引: RIGHTX=0, RIGHTY=1, LEFTY=2, LEFTX=3, SW1=4, SW2=5, SW3=6
-// stickValues[7]: 存储4个摇杆轴 + 3个辅助开关的值
+// 索引: RIGHTX=0, RIGHTY=1, LEFTY=2, LEFTX=3, SW1=4, SW2=5, SW3=6, SW4=7
+// stickValues[8]: 存储4个摇杆轴 + 4个辅助开关的值
 //----- 全局输入变量 ---------------------------------
 //----- global variables for inputs -------------------
-int16_t stickValues[7];  // 4 axis of joysticks + 3 aux inputs
+int16_t stickValues[8];  // 4 axis of joysticks + 4 aux inputs
 
 
 // ----- 原始ADC值结构体: 存储摇杆和电池电压的原始读取值 -----
@@ -107,7 +107,6 @@ void getDigitalInputs();
 void checkGestureSetting();
 bool checkStickMove();
 void playTone(uint8_t timesPerSecond);
-void blinkLED(int ledPin, uint16_t blinkRate);
 void stickMenuNavigation();
 void statusDisplay();
 void logData();
@@ -220,23 +219,14 @@ void calibrationLoad() {
 //Flash LED and beep for (times)
 
 // times: 闪烁/鸣叫次数
-// ===== 校准提示: LED闪烁 + 蜂鸣器鸣叫 =====
+// ===== 校准提示 =====
 void calibrationChirp(uint8_t times) {
-    
-    digitalWrite(DIGITAL_PIN_LED, HIGH);
-    delay(500);
-    digitalWrite(DIGITAL_PIN_LED, LOW);
-    delay(500);
-
     for (uint8_t i = 0; i < times; i++) {
         //tone(DIGITAL_PIN_BUZZER,5000,100);
-        digitalWrite(DIGITAL_PIN_LED, HIGH);
         delay(100);
         //digitalWrite(DIGITAL_PIN_BUZZER, LOW);
-        digitalWrite(DIGITAL_PIN_LED, LOW);
         delay(100);
     }
-    digitalWrite(DIGITAL_PIN_LED, LOW);
 }
 
 
@@ -307,8 +297,8 @@ bool calibrationRun() {
         Serial.print(calValues.leftXMid);
         Serial.println();
 
-        blinkLED(DIGITAL_PIN_LED, 1000);  // Slow flash while centering
-        
+        // GPIO8 is reserved for the AUX4 button; no LED indicator is available.
+
     }
     // 15 seconds for moving sticks
     else if (currentMillis > (calibrationTimerStart + CALIB_CENT_TMO) && currentMillis <  (calibrationTimerStart + CALIB_MOVE_TMO)){
@@ -367,7 +357,7 @@ bool calibrationRun() {
         Serial.print(calValues.leftYMax);
         Serial.println();
 
-        blinkLED(DIGITAL_PIN_LED, 100);  // Fast flash while moving to limits
+        // GPIO8 is reserved for the AUX4 button; no LED indicator is available.
     }
     else {
         Serial.println("Calibration Done");  
@@ -661,7 +651,7 @@ uint16_t processStick(int32_t adcValue, uint8_t chIndex) {
 
 // Map stick values into traditional standard CRSF channel microsecond positions (1000us to 2000us)
 
-// AUX1/AUX2/AUX3: 对应SW1/SW2/SW3开关(触发=最大值, 未触发=最小值)
+// AUX1/AUX2/AUX3/AUX4: 对应SW1/SW2/SW3/SW4开关(触发=最大值, 未触发=最小值)
 // Mode 4: AIL=左X, ELE=右Y, THR=左Y, RUD=右X
 // Mode 3: AIL=左X, ELE=左Y, THR=右Y, RUD=右X
 // Mode 2: AIL=右X, ELE=右Y, THR=左Y, RUD=左X (默认)
@@ -702,6 +692,7 @@ void mapChannels() {
     rcChannels[AUX1] = (stickValues[SW1] == 1) ? CRSF_DIGITAL_CHANNEL_MAX : CRSF_DIGITAL_CHANNEL_MIN;
     rcChannels[AUX2] = (stickValues[SW2] == 1) ? CRSF_DIGITAL_CHANNEL_MAX : CRSF_DIGITAL_CHANNEL_MIN;
     rcChannels[AUX3] = (stickValues[SW3] == 1) ? CRSF_DIGITAL_CHANNEL_MAX : CRSF_DIGITAL_CHANNEL_MIN;
+    rcChannels[AUX4] = (stickValues[SW4] == 1) ? CRSF_DIGITAL_CHANNEL_MAX : CRSF_DIGITAL_CHANNEL_MIN;
 
     // Differential mixer runs after normal channel mapping and AUX assignment.
     // CUSTOM is reserved for a future implementation; only mode 1 mixes.
@@ -855,6 +846,19 @@ void getDigitalInputs(){
             }
         }
     }
+
+    // GPIO8 AUX4 button
+    static uint32_t aux4PressedTime = 0;
+    if (digitalRead(DIGITAL_PIN_SWITCH_AUX4) == LOW) {
+        if (aux4PressedTime == 0)
+            aux4PressedTime = millis();
+    } else if (aux4PressedTime > 0) {
+        unsigned long pressDuration = millis() - aux4PressedTime;
+        aux4PressedTime = 0;
+        if (pressDuration >= BTN_SHORT_PRESS) {
+            stickValues[SW4] = !stickValues[SW4];
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------------------------------
@@ -939,60 +943,30 @@ void playTone(uint8_t timesPerSecond) {
 }
 
 
-// 参数: ledPin=LED引脚号, blinkRate=闪烁间隔(ms)
-// 非阻塞式LED闪烁(使用millis()计时，不占用CPU)
-// ===== LED闪烁控制 =====
-void blinkLED(int ledPin, uint16_t blinkRate) {
-    static uint8_t ledState = LOW;
-    static uint32_t previousLedMillis = 0;
-    uint32_t currentMillis = millis();
-
-    if (currentMillis - previousLedMillis >= blinkRate) {
-        previousLedMillis = currentMillis;     // save the last time you blinked the LED
-        ledState ^= 1;                      // if the LED is off turn it on and vice-versa
-        digitalWrite(ledPin, ledState);
-    }
-}
-
-
-// Flash Led and play buzzer depending on current state
-
 // 屏幕刷新率: 已武装且非蓝牙模式时2Hz，其他情况10Hz
 // 4. 导航事件处理(菜单操作)
 // 3. OLED屏幕刷新(根据当前屏幕类型绘制不同界面)
 // 2. 蜂鸣器提示
-// 1. LED状态指示(信号强度/电池低电压/USB供电/油门空闲警告)
+// 1. 电池低电压与油门空闲警告
 // 综合处理:
 // ===== 状态显示与系统管理 =====
 void statusDisplay(){
     static int avg = -120;
     int raw = -120;
     int strength = 0;
-    char* type;
 
     if (currentScreen == MODEL_FINDER) {
-        // If we are on the model finder screen, prioritize the LED display to show current state
-        // Calculations from https://github.com/iamsunilchahal/edgetx-lua-scripts-bw/blob/main/SCRIPTS/TOOLS/ELRS_Finder.lua
         raw = crsfClass.telemetryActive ? crsfClass.linkStats.uplinkRssi1 : -120;
-        // Exponential moving average for stability
-        avg = 0.8 * avg + 0.2 * (raw);
+        avg = 0.8 * avg + 0.2 * raw;
+        strength = constrain((avg + 110) * (100 / 70), 0, 100);
+    }
 
-        // Map avg (~-110..-40) to 0..100 “strength”
-        strength = constrain( (avg + 110) * (100/(70)), 0, 100 );    // -110→0, -40→100
-
-        uint16_t period = constrain (1200 - (strength * 10), 100, 1200); // ticks (10ms each): 120→1.2s, 10→0.1s
-        blinkLED(DIGITAL_PIN_LED, period);
-
-    } else if (batteryVoltage < WARNING_VOLTAGE && batteryVoltage >= BEEPING_VOLTAGE) {
-        blinkLED(DIGITAL_PIN_LED, 500);
-    }else if(batteryVoltage < BEEPING_VOLTAGE && batteryVoltage >= ON_USB){
-        blinkLED(DIGITAL_PIN_LED, 250);
+    if (batteryVoltage < BEEPING_VOLTAGE && batteryVoltage >= ON_USB) {
         playTone(2);
     }
 
     // check stick idle timer
     if (checkThrottleIdleTimeout() == true){
-        blinkLED(DIGITAL_PIN_LED, 100);
         playTone(5);
     }
 
@@ -1108,6 +1082,7 @@ void logData(){
         Serial.print(stickValues[SW1]);
         Serial.print(stickValues[SW2]);
         Serial.print(stickValues[SW3]);
+        Serial.print(stickValues[SW4]);
         if (ARMED) Serial.print("(ARMED)");
         Serial.print("  "); 
         if (crsfClass.moduleConnected){
@@ -1169,8 +1144,8 @@ void setup()
 
     pinMode(DIGITAL_PIN_SWITCH_ARM, INPUT_PULLUP);
     pinMode(DIGITAL_PIN_SWITCH_AUX2, INPUT_PULLUP);
+    pinMode(DIGITAL_PIN_SWITCH_AUX4, INPUT_PULLUP);
 
-    pinMode(DIGITAL_PIN_LED, OUTPUT);    // LED
     //pinMode(DIGITAL_PIN_BUZZER, OUTPUT); // BUZZER
     pinMode(DIGITAL_PIN_BUTTON, INPUT_PULLUP);
     
@@ -1179,7 +1154,6 @@ void setup()
     
     // passive buzzer, no startup tone
     // digitalWrite(DIGITAL_PIN_BUZZER, HIGH); //BUZZER OFF
-    digitalWrite(DIGITAL_PIN_LED, LOW); // LED ON
     
     // Initialize OLED
     initDisplay();
@@ -1303,7 +1277,8 @@ void loop()
                 int bleLeftZ   = (stickValues[SW1] == 1) ? 32767 : 0;
                 int bleRightZ  = (stickValues[SW2] == 1) ? 32767 : 0;
                 int slider1    = (stickValues[SW3] == 1) ? 32767 : 0;
-                bleGamepad.setAxes(bleLeftX, bleLeftY, bleLeftZ, bleRightX, bleRightY, bleRightZ, slider1, 0);       //(X, Y, Z, RX, RY, RZ, slider1, slider2)
+                int slider2    = (stickValues[SW4] == 1) ? 32767 : 0;
+                bleGamepad.setAxes(bleLeftX, bleLeftY, bleLeftZ, bleRightX, bleRightY, bleRightZ, slider1, slider2);       //(X, Y, Z, RX, RY, RZ, slider1, slider2)
 
                 if (batteryVoltage > 4.1) {
                     bleGamepad.setBatteryLevel(100);

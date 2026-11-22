@@ -31,11 +31,7 @@ const uint8_t ANALOG_PIN_VOLTAGE  = 2;// 电池电压检测引脚 (ADC2)
 const uint8_t DIGITAL_PIN_SWITCH_ARM =  7;  // 解锁(Arm)开关 (GPIO7)
 const uint8_t DIGITAL_PIN_SWITCH_AUX2 = 10; // AUX2 辅助开关 (GPIO10)
 const uint8_t DIGITAL_PIN_BUTTON = 9;       // 功能按键/编码器按键 (GPIO9)
-
-// --- 输出设备引脚 ---
-const uint8_t DIGITAL_PIN_LED =    8;      // 状态 LED 引脚 (GPIO8)
-const bool PIN_LED_LOW_ILLUM  =    true;   // LED 低电平点亮标志
-                                            // true = 低电平亮(共阳接法), false = 高电平亮(共阴接法)
+const uint8_t DIGITAL_PIN_SWITCH_AUX4 = 8;  // AUX4 按键 (GPIO8，低电平触发)
 
 // --- OLED 显示屏 I2C 引脚 ---
 const uint8_t I2C_SCL_OLED = 6;       // OLED I2C 时钟线 (GPIO6)
